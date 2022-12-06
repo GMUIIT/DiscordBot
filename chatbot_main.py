@@ -1,45 +1,16 @@
 import asyncio
 import datetime
 from collections import namedtuple
-from discord import utils, Embed, Colour
+from discord import utils, Embed, Colour, Intents
 from discord.ext import commands
+import pytz
 
-# Configuration options
-
-TOKEN = ""
-ROLE = ""
-CHANNEL = ""
-SCHEDULE = [
-    # Day, time, message
-    ("Monday", "12:00", "Reminder message 1"),
-    ("Wednesday", "18:00", "Reminder message 2"),
-]
-TIMEZONE = "Europe/London"
-CONTROL_CHANNEL = ""
-CONTROL_ROLE = ""
-CONTROL_PREFIX = "!"
-
-# Read the configuration options from a JSON file
-
-with open("config.json") as f:
-    config = json.load(f)
-
-TOKEN = config["token"]
-ROLE = config["role"]
-CHANNEL = config["channel"]
-SCHEDULE = [
-    # Day, time, message
-    (event["day"], event["time"], event["message"])
-    for event in config["schedule"]
-]
-TIMEZONE = config["timezone"]
-CONTROL_CHANNEL = config["control_channel"]
-CONTROL_ROLE = config["control_role"]
-CONTROL_PREFIX = config["control_prefix"]
 
 # Constants
-
 Event = namedtuple("Event", ["day", "time", "message"])
+
+# Configuration options
+from secret import *
 
 # Helper functions
 
@@ -62,9 +33,9 @@ def format_time(time: datetime.time) -> str:
 def to_local_time(dt: datetime.datetime) -> datetime.datetime:
     """Converts a datetime object to the bot's local time.
     """
-    return dt.astimezone(datetime.timezone.utc).astimezone(TIMEZONE)
+    return dt.astimezone(datetime.timezone.utc).astimezone(pytz.timezone(TIMEZONE))
 
-def schedule_events(events: List[Event]) -> List[Tuple[datetime.datetime, str]]:
+def schedule_events(events: list[Event]) -> list[tuple[datetime.datetime, str]]:
     """Schedules the events for the current week and returns a list of
     tuples containing the scheduled datetime and the event's message.
     """
@@ -90,8 +61,9 @@ def schedule_events(events: List[Event]) -> List[Tuple[datetime.datetime, str]]:
     return events
 
 # Bot setup
-
-bot = commands.Bot(command_prefix=CONTROL_PREFIX)
+# We need permissions for sending messages, adding reactions, and managing messages
+intents = Intents.default()
+bot = commands.Bot(command_prefix=CONTROL_PREFIX, intents=intents)
 
 @bot.event
 async def on_ready():
@@ -110,7 +82,7 @@ async def on_reaction_add(reaction, user):
     """
     # Check if the reaction is to a control channel message
     if reaction.message.channel.id != CONTROL_CHANNEL:
-    return
+        return
 
     # Check if the user has the control role
     if not utils.get(user.roles, name=CONTROL_ROLE):
@@ -179,7 +151,7 @@ async def cancel_event(message):
 @commands.has_role(CONTROL_ROLE)
 async def list_events(ctx):
     """
-    Lists the scheduled events.
+    lists the scheduled events.
     """
     # Get the scheduled events
     events = schedule_events(SCHEDULE)
