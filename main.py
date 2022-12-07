@@ -29,20 +29,16 @@ async def on_reaction_add(reaction, user):
     """
     Handles reactions to the control channel messages.
     """
-    print(f"Got reaction: {reaction} from {user}")
     # Check if the reaction is to a control channel message
     if reaction.message.channel.id != secret.CONTROL_CHANNEL:
-        print("Not a control channel message")
         return
 
     # Check if the user has the control role
     if not utils.get(user.roles, id=secret.CONTROL_ROLE):
-        print("User doesn't have control role")
         return
 
     # Check if the reaction is the cancel emoji
     if reaction.emoji != "❌":
-        print("Not the cancel emoji")
         return
 
     # Cancel the event
@@ -93,6 +89,8 @@ async def event_loop():
     # If the event hasn't been cancelled, send the message
     if message.channel:
         await send_message(None, message=next_event.message)
+    else:
+        print("Event cancelled, nothing to do")
 
     # Restart the event loop
     bot.loop.create_task(event_loop())
